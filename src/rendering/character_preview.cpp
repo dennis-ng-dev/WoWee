@@ -759,6 +759,20 @@ bool CharacterPreview::loadCharacter(game::Race race, game::Gender gender,
     facialHair_ = facialHair;
 
     std::unordered_set<uint16_t> activeGeosets = buildBaseGeosets();
+    // The no-cloak panel (1501) is part of the bare back: without it the
+    // upper back between the shoulders is a hole. buildBaseGeosets leaves
+    // group 15 out because it cannot see the model, and applyEquipment puts
+    // the panel back - but character creation never calls applyEquipment, so
+    // every race was created with an open back. Added only where the model has
+    // it (the Draenei male has none), the same rule applyEquipment uses.
+    if (const auto* modelData = charRenderer_->getModelData(PREVIEW_MODEL_ID)) {
+        for (const auto& batch : modelData->batches) {
+            if (batch.submeshId == core::kGeosetNoCape) {
+                activeGeosets.insert(core::kGeosetNoCape);
+                break;
+            }
+        }
+    }
     charRenderer_->setActiveGeosets(instanceId_, activeGeosets);
 
     // Play idle animation (Stand = animation ID 0)
